@@ -26,6 +26,12 @@ module.exports = {
   // Todoist API Configuration
   todoist: {
     token: process.env.TODOIST_TOKEN
+  },
+
+  // AnythingLLM API Configuration
+  anythingllm: {
+    apiKey: process.env.ANYTHINGLLM_API_KEY,
+    baseUrl: process.env.ANYTHINGLLM_BASE_URL || 'http://localhost:3009/api/v1'
   }
 
   // Future service configurations will be added here

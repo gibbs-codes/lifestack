@@ -19,6 +19,7 @@ const { router: stravaRouter } = require('./services/strava');
 const { router: pavlokRouter } = require('./services/pavlok');
 const { router: notionRouter } = require('./services/notion');
 const { router: unifiedRouter } = require('./services/unified');
+const { router: anythingllmRouter } = require('./services/anythingllm');
 
 // Initialize Express app
 const app = express();
@@ -78,7 +79,8 @@ app.get('/', (req, res) => {
       strava: '/api/strava',
       pavlok: '/api/pavlok',
       notion: '/api/notion',
-      unified: '/api/unified'
+      unified: '/api/unified',
+      anythingllm: '/api/anythingllm'
     }
   });
 });
@@ -142,6 +144,7 @@ app.use('/api/strava', stravaRouter);
 app.use('/api/pavlok', pavlokRouter);
 app.use('/api/notion', notionRouter);
 app.use('/api/unified', unifiedRouter);
+app.use('/api/anythingllm', anythingllmRouter);
 
 // 404 handler - must be after all routes
 app.use((req, res) => {
@@ -211,6 +214,7 @@ const startServer = async () => {
       console.log(`⚡ Pavlok API: http://localhost:${PORT}/api/pavlok/rate-limit`);
       console.log(`📝 Notion API: http://localhost:${PORT}/api/notion/health`);
       console.log(`🔄 Unified API: http://localhost:${PORT}/api/unified/today`);
+      console.log(`🤖 AnythingLLM API: http://localhost:${PORT}/api/anythingllm/voice`);
       console.log('');
       console.log('Press CTRL+C to stop the server');
       console.log('');
