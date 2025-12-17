@@ -26,9 +26,31 @@ fi
 
 # Get the script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+TARGET_DIR="/home/james/apps/lifestack"
 
 echo -e "${BLUE}📍 Working directory: ${SCRIPT_DIR}${NC}"
+
+# If running from GitHub Actions workspace, sync to target directory
+if [[ "$SCRIPT_DIR" == *"actions-runner"* ]]; then
+  echo -e "${BLUE}📂 Detected GitHub Actions deployment${NC}"
+  echo -e "${BLUE}📂 Syncing code from Actions workspace to ${TARGET_DIR}...${NC}"
+
+  # Create target directory if it doesn't exist
+  mkdir -p "$TARGET_DIR"
+
+  # Sync files, excluding node_modules and .git
+  rsync -av --delete --exclude 'node_modules' --exclude '.git' --exclude '.env' "$SCRIPT_DIR/" "$TARGET_DIR/"
+
+  echo -e "${GREEN}✅ Code synced to ${TARGET_DIR}${NC}"
+
+  # Switch to target directory for the rest of the deployment
+  cd "$TARGET_DIR"
+  SCRIPT_DIR="$TARGET_DIR"
+  echo -e "${BLUE}📍 Switched to: ${SCRIPT_DIR}${NC}"
+else
+  cd "$SCRIPT_DIR"
+  echo -e "${BLUE}📍 Running directly from: ${SCRIPT_DIR}${NC}"
+fi
 
 # Check for required files
 echo -e "\n${BLUE}🔍 Checking required files...${NC}"
