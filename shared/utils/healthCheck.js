@@ -163,18 +163,11 @@ async function performHealthCheck() {
   };
 
   // Calculate overall status
+  // MongoDB is optional - app can run in degraded mode without it
   const statuses = Object.values(services).map(s => s.status);
   let overallStatus = 'healthy';
 
-  if (statuses.includes('unhealthy')) {
-    // If MongoDB is unhealthy, system is unhealthy
-    if (services.mongodb.status === 'unhealthy') {
-      overallStatus = 'unhealthy';
-    } else {
-      // Otherwise degraded if any service is unhealthy
-      overallStatus = 'degraded';
-    }
-  } else if (statuses.includes('degraded')) {
+  if (statuses.includes('unhealthy') || statuses.includes('degraded')) {
     overallStatus = 'degraded';
   }
 
