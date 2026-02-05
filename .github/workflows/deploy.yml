@@ -22,7 +22,7 @@ jobs:
 
       - name: Normalize image name (lowercase for GHCR)
         shell: bash
-        run: echo "IMAGE_REPO=${IMAGE_REPO,,}" >> $GITHUB_ENV
+        run: echo "IMAGE_REPO=$(echo "$IMAGE_REPO" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -69,7 +69,7 @@ jobs:
 
       - name: Normalize image name (lowercase for GHCR)
         shell: bash
-        run: echo "IMAGE_REPO=${IMAGE_REPO,,}" >> $GITHUB_ENV
+        run: echo "IMAGE_REPO=$(echo "$IMAGE_REPO" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
