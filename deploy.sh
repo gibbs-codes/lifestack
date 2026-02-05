@@ -27,10 +27,11 @@ fi
 # Paths and defaults
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_DIR="/home/james/apps/lifestack"
+SECRETS_DIR="/home/james/secrets/lifestack"
 IMAGE="${IMAGE:-ghcr.io/jgibbswork/lifestack:latest}"
-ENV_FILE="${ENV_FILE:-$TARGET_DIR/.env}"
+ENV_FILE="${ENV_FILE:-$SECRETS_DIR/production.env}"
 COMPOSE_FILE="${COMPOSE_FILE:-$TARGET_DIR/docker-compose.yml}"
-GOOGLE_CREDENTIALS_PATH="${GOOGLE_CREDENTIALS_PATH:-$TARGET_DIR/credentials.json}"
+GOOGLE_CREDENTIALS_PATH="${GOOGLE_CREDENTIALS_PATH:-$SECRETS_DIR/credentials.json}"
 
 printf "${BLUE}📍 Working directory: ${SCRIPT_DIR}${NC}\n"
 
