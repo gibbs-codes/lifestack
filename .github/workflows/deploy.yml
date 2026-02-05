@@ -1,34 +1,85 @@
-name: Deploy to Raspberry Pi
+name: Build and Deploy (Docker)
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_REPO: ghcr.io/${{ github.repository_owner }}/lifestack
 
 jobs:
-  deploy:
-    runs-on: self-hosted
-
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check Node.js version
-        run: node -v
+      - name: Normalize image name (lowercase for GHCR)
+        run: echo "IMAGE_REPO=${IMAGE_REPO,,}" >> $GITHUB_ENV
 
-      - name: Check npm version
-        run: npm -v
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-      - name: Run deployment script
-        run: ./deploy.sh
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Verify service is running
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_REPO }}
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=raw,value=latest
+
+      - name: Build and push multi-arch image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/arm64,linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Normalize image name (lowercase for GHCR)
+        run: echo "IMAGE_REPO=${IMAGE_REPO,,}" >> $GITHUB_ENV
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+      - name: Deploy via docker compose
+        env:
+          IMAGE: ${{ env.IMAGE_REPO }}:latest
         run: |
-          sleep 5
-          sudo systemctl status lifestack --no-pager || exit 1
+          chmod +x deploy.sh
+          ./deploy.sh
 
       - name: Health check
         run: |
-          sleep 3
-          curl -f http://localhost:3000/health || exit 1
+          sleep 5
+          curl -f http://localhost:3003/health

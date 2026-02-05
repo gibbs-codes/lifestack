@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Lifestack Deployment Script
-# Deploys the Lifestack API on Raspberry Pi 5
+# Lifestack container deployment script
+# Pulls prebuilt image and restarts docker compose service on Raspberry Pi
 
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -12,210 +12,83 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}"
-echo "╔════════════════════════════════════════════╗"
-echo "║       Lifestack Deployment Script         ║"
-echo "╚════════════════════════════════════════════╝"
-echo -e "${NC}"
+printf "${BLUE}\n"
+printf "╔════════════════════════════════════════════╗\n"
+printf "║     Lifestack Container Deployment        ║\n"
+printf "╚════════════════════════════════════════════╝\n"
+printf "${NC}"
 
 # Check if running as root
 if [ "$EUID" -eq 0 ]; then
-  echo -e "${RED}Error: Do not run this script as root${NC}"
+  printf "${RED}Error: Do not run this script as root${NC}\n"
   exit 1
 fi
 
-# Get the script directory
+# Paths and defaults
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_DIR="/home/james/apps/lifestack"
+IMAGE="${IMAGE:-ghcr.io/jgibbswork/lifestack:latest}"
+ENV_FILE="${ENV_FILE:-$TARGET_DIR/.env}"
+COMPOSE_FILE="${COMPOSE_FILE:-$TARGET_DIR/docker-compose.yml}"
+GOOGLE_CREDENTIALS_PATH="${GOOGLE_CREDENTIALS_PATH:-$TARGET_DIR/credentials.json}"
 
-echo -e "${BLUE}📍 Working directory: ${SCRIPT_DIR}${NC}"
+printf "${BLUE}📍 Working directory: ${SCRIPT_DIR}${NC}\n"
 
-# If running from GitHub Actions workspace, sync to target directory
+# If running from GitHub Actions workspace, sync compose + scripts to target directory
 if [[ "$SCRIPT_DIR" == *"actions-runner"* ]]; then
-  echo -e "${BLUE}📂 Detected GitHub Actions deployment${NC}"
-  echo -e "${BLUE}📂 Syncing code from Actions workspace to ${TARGET_DIR}...${NC}"
-
-  # Create target directory if it doesn't exist
+  printf "${BLUE}📂 Detected GitHub Actions deployment${NC}\n"
+  printf "${BLUE}📂 Syncing compose files to ${TARGET_DIR}...${NC}\n"
   mkdir -p "$TARGET_DIR"
-
-  # Sync files, excluding node_modules and .git
   rsync -av --delete --exclude 'node_modules' --exclude '.git' --exclude '.env' "$SCRIPT_DIR/" "$TARGET_DIR/"
-
-  echo -e "${GREEN}✅ Code synced to ${TARGET_DIR}${NC}"
-
-  # Switch to target directory for the rest of the deployment
+  printf "${GREEN}✅ Files synced to ${TARGET_DIR}${NC}\n"
   cd "$TARGET_DIR"
-  SCRIPT_DIR="$TARGET_DIR"
-  echo -e "${BLUE}📍 Switched to: ${SCRIPT_DIR}${NC}"
 else
   cd "$SCRIPT_DIR"
-  echo -e "${BLUE}📍 Running directly from: ${SCRIPT_DIR}${NC}"
+  printf "${BLUE}📍 Running directly from: ${SCRIPT_DIR}${NC}\n"
 fi
 
-# Check for required files
-echo -e "\n${BLUE}🔍 Checking required files...${NC}"
-
-if [ ! -f ".env" ]; then
-  echo -e "${RED}❌ Error: .env file not found${NC}"
-  echo "   Please copy .env.example to .env and fill in your API tokens:"
-  echo "   cp .env.example .env"
-  echo "   nano .env"
+# Basic prerequisites
+if ! command -v docker &> /dev/null; then
+  printf "${RED}❌ Error: docker not installed${NC}\n"
+  exit 1
+fi
+if ! docker compose version &> /dev/null; then
+  printf "${RED}❌ Error: docker compose plugin not installed${NC}\n"
   exit 1
 fi
 
-if [ ! -f "package.json" ]; then
-  echo -e "${RED}❌ Error: package.json not found${NC}"
+# Validate required files
+printf "\n${BLUE}🔍 Checking required files...${NC}\n"
+
+if [ ! -f "$ENV_FILE" ]; then
+  printf "${RED}❌ Error: env file not found at $ENV_FILE${NC}\n"
   exit 1
 fi
 
-echo -e "${GREEN}✅ Required files found${NC}"
+if [ ! -f "$GOOGLE_CREDENTIALS_PATH" ]; then
+  printf "${YELLOW}⚠️  Warning: credentials.json missing at $GOOGLE_CREDENTIALS_PATH${NC}\n"
+  printf "${YELLOW}   Calendar features may be disabled unless GOOGLE_CREDENTIALS_PATH is set${NC}\n"
+fi
 
-# Validate critical environment variables
-echo -e "\n${BLUE}🔑 Validating environment variables...${NC}"
-
-source .env
-
-# Check MONGODB_URI
-if [ -z "$MONGODB_URI" ]; then
-  echo -e "${RED}❌ Error: MONGODB_URI not set in .env${NC}"
+if [ ! -f "$COMPOSE_FILE" ]; then
+  printf "${RED}❌ Error: docker-compose.yml not found at $COMPOSE_FILE${NC}\n"
   exit 1
 fi
 
-# Check API_KEY
-if [ -z "$API_KEY" ] || [ "$API_KEY" = "your_api_key_here" ]; then
-  echo -e "${RED}❌ Error: API_KEY not set or using default value${NC}"
-  echo "   Please set a secure API_KEY in .env"
-  exit 1
-fi
+printf "${GREEN}✅ Files ready${NC}\n"
 
-# Warn about missing optional tokens
-WARNINGS=0
+printf "\n${BLUE}⬇️  Pulling image ${IMAGE}${NC}\n"
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull lifestack
 
-if [ -z "$TODOIST_TOKEN" ] || [ "$TODOIST_TOKEN" = "your_todoist_api_token_here" ]; then
-  echo -e "${YELLOW}⚠️  Warning: TODOIST_TOKEN not set (Todoist features disabled)${NC}"
-  WARNINGS=$((WARNINGS + 1))
-fi
+printf "\n${BLUE}🚀 Starting container...${NC}\n"
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d lifestack
 
-if [ -z "$STRAVA_ACCESS_TOKEN" ] || [ "$STRAVA_ACCESS_TOKEN" = "your_strava_access_token_here" ]; then
-  echo -e "${YELLOW}⚠️  Warning: STRAVA_ACCESS_TOKEN not set (Strava features disabled)${NC}"
-  WARNINGS=$((WARNINGS + 1))
-fi
+printf "\n${BLUE}📊 Service status:${NC}\n"
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
 
-if [ -z "$PAVLOK_TOKEN" ] || [ "$PAVLOK_TOKEN" = "your_pavlok_token_here" ]; then
-  echo -e "${YELLOW}⚠️  Warning: PAVLOK_TOKEN not set (Pavlok features disabled)${NC}"
-  WARNINGS=$((WARNINGS + 1))
-fi
-
-if [ -z "$NOTION_TOKEN" ] || [ "$NOTION_TOKEN" = "your_notion_integration_token_here" ]; then
-  echo -e "${YELLOW}⚠️  Warning: NOTION_TOKEN not set (Notion features disabled)${NC}"
-  WARNINGS=$((WARNINGS + 1))
-fi
-
-if [ $WARNINGS -gt 0 ]; then
-  echo -e "${YELLOW}   (Some services will be unavailable without their API tokens)${NC}"
-fi
-
-echo -e "${GREEN}✅ Environment validation complete${NC}"
-
-# Check Node.js
-echo -e "\n${BLUE}🔍 Checking Node.js installation...${NC}"
-
-if ! command -v node &> /dev/null; then
-  echo -e "${RED}❌ Error: Node.js not found${NC}"
-  echo "   Install Node.js: curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -"
-  echo "   Then: sudo apt-get install -y nodejs"
-  exit 1
-fi
-
-NODE_VERSION=$(node -v)
-echo -e "${GREEN}✅ Node.js ${NODE_VERSION} found${NC}"
-
-# Check npm
-if ! command -v npm &> /dev/null; then
-  echo -e "${RED}❌ Error: npm not found${NC}"
-  exit 1
-fi
-
-NPM_VERSION=$(npm -v)
-echo -e "${GREEN}✅ npm ${NPM_VERSION} found${NC}"
-
-# Install dependencies
-echo -e "\n${BLUE}📦 Installing dependencies...${NC}"
-
-npm install --production
-
-echo -e "${GREEN}✅ Dependencies installed${NC}"
-
-# Setup systemd service
-echo -e "\n${BLUE}⚙️  Setting up systemd service...${NC}"
-
-# Copy service file to systemd
-sudo cp lifestack.service /etc/systemd/system/
-
-# Reload systemd
-sudo systemctl daemon-reload
-
-# Enable service to start on boot
-sudo systemctl enable lifestack
-
-echo -e "${GREEN}✅ Systemd service configured${NC}"
-
-# Start the service
-echo -e "\n${BLUE}🚀 Starting Lifestack service...${NC}"
-
-sudo systemctl restart lifestack
-
-# Wait a moment for service to start
-sleep 3
-
-# Check service status
-if sudo systemctl is-active --quiet lifestack; then
-  echo -e "${GREEN}✅ Lifestack service is running!${NC}"
-else
-  echo -e "${RED}❌ Error: Service failed to start${NC}"
-  echo "   Check logs with: sudo journalctl -u lifestack -n 50"
-  exit 1
-fi
-
-# Get server port
-PORT=${PORT:-3000}
-
-# Display success message
-echo -e "\n${GREEN}"
-echo "╔════════════════════════════════════════════╗"
-echo "║     ✅ Deployment Successful!              ║"
-echo "╚════════════════════════════════════════════╝"
-echo -e "${NC}"
-
-# Show service status
-echo -e "${BLUE}📊 Service Status:${NC}"
-sudo systemctl status lifestack --no-pager | head -5
-
-# Get local IP
+PORT=${PORT:-3003}
 LOCAL_IP=$(hostname -I | awk '{print $1}')
-
-echo -e "\n${BLUE}🔗 Test URLs:${NC}"
-echo "   Health Check:    http://localhost:${PORT}/health"
-echo "   Calendar API:    http://localhost:${PORT}/api/calendar/health"
-echo "   Memory API:      http://localhost:${PORT}/api/memory"
-echo "   Strava API:      http://localhost:${PORT}/api/strava/health"
-echo "   Pavlok API:      http://localhost:${PORT}/api/pavlok/health"
-echo "   Notion API:      http://localhost:${PORT}/api/notion/health"
-echo "   Unified API:     http://localhost:${PORT}/api/unified/today"
-
-if [ ! -z "$LOCAL_IP" ]; then
-  echo -e "\n${BLUE}🌐 External Access (from other devices):${NC}"
-  echo "   http://${LOCAL_IP}:${PORT}/health"
-fi
-
-echo -e "\n${BLUE}📝 Useful Commands:${NC}"
-echo "   View status:     ${GREEN}sudo systemctl status lifestack${NC}"
-echo "   View logs:       ${GREEN}sudo journalctl -u lifestack -f${NC}"
-echo "   Restart service: ${GREEN}sudo systemctl restart lifestack${NC}"
-echo "   Stop service:    ${GREEN}sudo systemctl stop lifestack${NC}"
-echo "   Test APIs:       ${GREEN}npm test${NC}"
-
-echo -e "\n${BLUE}🧪 Quick Test:${NC}"
-echo "   curl http://localhost:${PORT}/health"
-
-echo ""
+printf "\n${BLUE}🔗 Test URLs:${NC}\n"
+printf "   Health Check:    http://localhost:${PORT}/health\n"
+printf "   Health Check (LAN): http://${LOCAL_IP}:${PORT}/health\n"
+printf "${GREEN}\n✅ Deployment complete${NC}\n"
