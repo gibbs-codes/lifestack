@@ -185,73 +185,71 @@ app.use((err, req, res, next) => {
  */
 
 const startServer = async () => {
+  // Start Express server first so health check endpoint is always reachable
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log('');
+    console.log('╔════════════════════════════════════════════╗');
+    console.log('║         🚀 Lifestack Server Started       ║');
+    console.log('╚════════════════════════════════════════════╝');
+    console.log('');
+    console.log(`📍 Server running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+    console.log(`📅 Calendar API: http://localhost:${PORT}/api/calendar/events/today`);
+    console.log(`🧠 Memory API: http://localhost:${PORT}/api/memory`);
+    console.log(`🏃 Strava API: http://localhost:${PORT}/api/strava/recent`);
+    console.log(`⚡ Pavlok API: http://localhost:${PORT}/api/pavlok/rate-limit`);
+    console.log(`📝 Notion API: http://localhost:${PORT}/api/notion/health`);
+    console.log(`🔄 Unified API: http://localhost:${PORT}/api/unified/today`);
+    console.log(`🤖 AnythingLLM API: http://localhost:${PORT}/api/anythingllm/voice`);
+    console.log('');
+    console.log('Press CTRL+C to stop the server');
+    console.log('');
+  });
+
+  // Connect to MongoDB (non-fatal — health check will report status)
   try {
-    // Connect to MongoDB
     console.log('🔌 Connecting to MongoDB...');
     await connectDB();
+  } catch (error) {
+    console.error('⚠️  MongoDB unavailable at startup:', error.message);
+    console.error('   Health check will report unhealthy until connection is restored');
+  }
 
-    // Initialize Calendar Service (optional)
-    try {
-      await initializeCalendarService();
-    } catch (error) {
-      console.log('⚠️  Calendar service disabled:', error.message);
-      console.log('   To enable: Set up Google OAuth credentials');
-    }
+  // Initialize Calendar Service (optional)
+  try {
+    await initializeCalendarService();
+  } catch (error) {
+    console.log('⚠️  Calendar service disabled:', error.message);
+    console.log('   To enable: Set up Google OAuth credentials');
+  }
 
-    // Start Express server
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log('');
-      console.log('╔════════════════════════════════════════════╗');
-      console.log('║         🚀 Lifestack Server Started       ║');
-      console.log('╚════════════════════════════════════════════╝');
-      console.log('');
-      console.log(`📍 Server running on port ${PORT}`);
-      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-      console.log(`📅 Calendar API: http://localhost:${PORT}/api/calendar/events/today`);
-      console.log(`🧠 Memory API: http://localhost:${PORT}/api/memory`);
-      console.log(`🏃 Strava API: http://localhost:${PORT}/api/strava/recent`);
-      console.log(`⚡ Pavlok API: http://localhost:${PORT}/api/pavlok/rate-limit`);
-      console.log(`📝 Notion API: http://localhost:${PORT}/api/notion/health`);
-      console.log(`🔄 Unified API: http://localhost:${PORT}/api/unified/today`);
-      console.log(`🤖 AnythingLLM API: http://localhost:${PORT}/api/anythingllm/voice`);
-      console.log('');
-      console.log('Press CTRL+C to stop the server');
-      console.log('');
+  // Graceful shutdown handler
+  const gracefulShutdown = async (signal) => {
+    console.log('');
+    console.log(`\n⚠️  ${signal} received, shutting down gracefully...`);
+
+    // Close server
+    server.close(async () => {
+      console.log('🛑 HTTP server closed');
+
+      // Close database connection
+      await closeDB();
+
+      console.log('👋 Shutdown complete');
+      process.exit(0);
     });
 
-    // Graceful shutdown handler
-    const gracefulShutdown = async (signal) => {
-      console.log('');
-      console.log(`\n⚠️  ${signal} received, shutting down gracefully...`);
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+      console.error('❌ Forced shutdown after timeout');
+      process.exit(1);
+    }, 10000);
+  };
 
-      // Close server
-      server.close(async () => {
-        console.log('🛑 HTTP server closed');
-
-        // Close database connection
-        await closeDB();
-
-        console.log('👋 Shutdown complete');
-        process.exit(0);
-      });
-
-      // Force shutdown after 10 seconds
-      setTimeout(() => {
-        console.error('❌ Forced shutdown after timeout');
-        process.exit(1);
-      }, 10000);
-    };
-
-    // Listen for termination signals
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-  } catch (error) {
-    console.error('❌ Failed to start server:', error.message);
-    console.error(error.stack);
-    process.exit(1);
-  }
+  // Listen for termination signals
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 };
 
 // Handle uncaught exceptions
