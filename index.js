@@ -213,7 +213,7 @@ const startServer = async () => {
     await connectDB();
   } catch (error) {
     console.error('⚠️  MongoDB unavailable at startup:', error.message);
-    console.error('   Health check will report unhealthy until connection is restored');
+    console.error('   App running in degraded mode without database');
   }
 
   // Initialize Calendar Service (optional)

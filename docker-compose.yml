@@ -5,14 +5,14 @@ services:
     image: ${IMAGE:-ghcr.io/jgibbswork/lifestack:latest}
     restart: unless-stopped
     ports:
-      - "3003:3000"
+      - "3003:3003"
     env_file:
       - ${ENV_FILE:-/home/james/secrets/lifestack/production.env}
     volumes:
       # Google OAuth credentials; override GOOGLE_CREDENTIALS_PATH if stored elsewhere
       - ${GOOGLE_CREDENTIALS_PATH:-/home/james/secrets/lifestack/credentials.json}:/app/credentials.json:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
       interval: 30s
       timeout: 5s
       retries: 5
