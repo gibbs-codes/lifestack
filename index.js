@@ -20,6 +20,10 @@ const { router: pavlokRouter } = require('./services/pavlok');
 const { router: notionRouter } = require('./services/notion');
 const { router: unifiedRouter } = require('./services/unified');
 const { router: anythingllmRouter } = require('./services/anythingllm');
+const { router: weatherRouter } = require('./services/weather');
+const { router: transitRouter } = require('./services/transit');
+const { router: artRouter } = require('./services/art');
+const { router: dashboardRouter, profileRouter } = require('./services/dashboard');
 
 // Initialize Express app
 const app = express();
@@ -80,7 +84,12 @@ app.get('/', (req, res) => {
       pavlok: '/api/pavlok',
       notion: '/api/notion',
       unified: '/api/unified',
-      anythingllm: '/api/anythingllm'
+      anythingllm: '/api/anythingllm',
+      weather: '/api/weather',
+      transit: '/api/transit',
+      art: '/api/art',
+      dashboard: '/api/dashboard',
+      profile: '/api/profile'
     }
   });
 });
@@ -145,6 +154,11 @@ app.use('/api/pavlok', pavlokRouter);
 app.use('/api/notion', notionRouter);
 app.use('/api/unified', unifiedRouter);
 app.use('/api/anythingllm', anythingllmRouter);
+app.use('/api/weather', weatherRouter);
+app.use('/api/transit', transitRouter);
+app.use('/api/art', artRouter);
+app.use('/api/dashboard', dashboardRouter);
+app.use('/api/profile', profileRouter);
 
 // 404 handler - must be after all routes
 app.use((req, res) => {
@@ -202,6 +216,11 @@ const startServer = async () => {
     console.log(`📝 Notion API: http://localhost:${PORT}/api/notion/health`);
     console.log(`🔄 Unified API: http://localhost:${PORT}/api/unified/today`);
     console.log(`🤖 AnythingLLM API: http://localhost:${PORT}/api/anythingllm/voice`);
+    console.log(`🌤️  Weather API: http://localhost:${PORT}/api/weather/current`);
+    console.log(`🚇 Transit API: http://localhost:${PORT}/api/transit/all`);
+    console.log(`🎨 Art API: http://localhost:${PORT}/api/art/current`);
+    console.log(`📊 Dashboard API: http://localhost:${PORT}/api/dashboard/data`);
+    console.log(`👤 Profile API: http://localhost:${PORT}/api/profile`);
     console.log('');
     console.log('Press CTRL+C to stop the server');
     console.log('');

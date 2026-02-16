@@ -32,7 +32,18 @@ module.exports = {
   anythingllm: {
     apiKey: process.env.ANYTHINGLLM_API_KEY,
     baseUrl: process.env.ANYTHINGLLM_BASE_URL || 'http://localhost:3009/api/v1'
-  }
+  },
 
-  // Future service configurations will be added here
+  // OpenWeatherMap API Configuration
+  openweather: {
+    apiKey: process.env.OPENWEATHER_API_KEY,
+    lat: process.env.WEATHER_LAT || '41.8781',
+    lon: process.env.WEATHER_LON || '-87.6298'
+  },
+
+  // CTA Transit API Configuration
+  cta: {
+    busApiKey: process.env.CTA_BUS_API_KEY,
+    trainApiKey: process.env.CTA_TRAIN_API_KEY
+  }
 };

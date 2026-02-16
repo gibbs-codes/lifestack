@@ -1,0 +1,73 @@
+/**
+ * CTA Stop IDs Configuration
+ *
+ * Hardcoded CTA stop IDs for specific locations
+ *
+ * To find stop IDs:
+ * - Bus stops: Use CTA Bus Tracker API or check stop signs for stop IDs
+ *   API: http://www.ctabustracker.com/bustime/api/v2/getstops
+ *
+ * - Train stops: Use CTA Train Tracker API or reference CTA documentation
+ *   API: http://lapi.transitchicago.com/api/1.0/ttpositions.aspx
+ *   Documentation: https://www.transitchicago.com/developers/
+ */
+
+module.exports = {
+  // Bus Routes
+  bus: {
+    // Route 77 - Belmont Avenue
+    route77: {
+      routeId: '77',
+      eastbound: {
+        stopId: '17379',  // Belmont & Sheffield (Eastbound)
+        direction: 'Eastbound'
+      },
+      westbound: {
+        stopId: '17380',  // Belmont & Sheffield (Westbound)
+        direction: 'Westbound'
+      }
+    }
+  },
+
+  // Train Lines
+  train: {
+    // Red Line
+    redLine: {
+      lineCode: 'Red',
+      stops: [
+        {
+          stopId: '41320',  // Belmont Red Line station (3150 N Sheffield Ave)
+          stopName: 'Belmont',
+          direction: 'Service toward 95th/Dan Ryan'
+        }
+      ]
+    },
+
+    // Brown Line
+    brownLine: {
+      lineCode: 'Brn',
+      stops: [
+        {
+          stopId: '41320',  // Belmont Brown Line station (same as Red - shared station)
+          stopName: 'Belmont',
+          direction: 'Service toward Kimball'
+        }
+      ]
+    }
+  },
+
+  // Direction mappings for Belmont station
+  directions: {
+    red: {
+      north: ['Howard'],
+      south: ['95th/Dan Ryan']
+    },
+    brown: {
+      north: ['Kimball'],
+      south: ['Loop']
+    }
+  },
+
+  // Limit how many predictions per direction
+  trainLimitPerDirection: 8
+};
