@@ -24,6 +24,7 @@ const { router: weatherRouter } = require('./services/weather');
 const { router: transitRouter } = require('./services/transit');
 const { router: artRouter } = require('./services/art');
 const { router: dashboardRouter, profileRouter } = require('./services/dashboard');
+const { router: printRouter } = require('./services/print');
 
 // Initialize Express app
 const app = express();
@@ -89,7 +90,8 @@ app.get('/', (req, res) => {
       transit: '/api/transit',
       art: '/api/art',
       dashboard: '/api/dashboard',
-      profile: '/api/profile'
+      profile: '/api/profile',
+      print: '/api/print'
     }
   });
 });
@@ -159,6 +161,7 @@ app.use('/api/transit', transitRouter);
 app.use('/api/art', artRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/profile', profileRouter);
+app.use('/api/print', printRouter);
 
 // 404 handler - must be after all routes
 app.use((req, res) => {
@@ -221,6 +224,7 @@ const startServer = async () => {
     console.log(`🎨 Art API: http://localhost:${PORT}/api/art/current`);
     console.log(`📊 Dashboard API: http://localhost:${PORT}/api/dashboard/data`);
     console.log(`👤 Profile API: http://localhost:${PORT}/api/profile`);
+    console.log(`🖨️  Print API: http://localhost:${PORT}/api/print`);
     console.log('');
     console.log('Press CTRL+C to stop the server');
     console.log('');
