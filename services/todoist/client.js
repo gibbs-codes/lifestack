@@ -7,7 +7,7 @@ const { createApiClient } = require('../../shared/utils/apiClient');
 const todoistConfig = require('../../config/services').todoist;
 
 // Todoist API configuration
-const TODOIST_BASE_URL = 'https://api.todoist.com/rest/v2';
+const TODOIST_BASE_URL = 'https://api.todoist.com/api/v1';
 
 /**
  * Todoist API Client Class
