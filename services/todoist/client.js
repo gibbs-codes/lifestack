@@ -30,6 +30,17 @@ class TodoistClient {
   }
 
   /**
+   * Extract array from API response (v1 API wraps results)
+   * @private
+   */
+  _extractArray(data) {
+    if (Array.isArray(data)) return data;
+    if (data?.results && Array.isArray(data.results)) return data.results;
+    if (data?.items && Array.isArray(data.items)) return data.items;
+    return [];
+  }
+
+  /**
    * Get all tasks
    * @param {Object} options - Query options
    * @returns {Promise<Array>} Array of tasks
@@ -42,7 +53,7 @@ class TodoistClient {
       };
 
       const response = await this.client.get('/tasks', { params });
-      return response.data;
+      return this._extractArray(response.data);
     } catch (error) {
       this._handleError(error, 'Failed to fetch tasks');
     }
@@ -55,7 +66,7 @@ class TodoistClient {
   async getProjects() {
     try {
       const response = await this.client.get('/projects');
-      return response.data;
+      return this._extractArray(response.data);
     } catch (error) {
       this._handleError(error, 'Failed to fetch projects');
     }
