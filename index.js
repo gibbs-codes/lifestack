@@ -25,7 +25,8 @@ const { router: transitRouter } = require('./services/transit');
 const { router: artRouter } = require('./services/art');
 const { router: dashboardRouter, profileRouter } = require('./services/dashboard');
 const { router: printRouter } = require('./services/print');
-const { router: n8nRouter } = require('./services/n8n');
+const { router: briefingRouter } = require('./services/briefing');
+const { router: ollamaRouter } = require('./services/ollama');
 
 // Initialize Express app
 const app = express();
@@ -93,7 +94,8 @@ app.get('/', (req, res) => {
       dashboard: '/api/dashboard',
       profile: '/api/profile',
       print: '/api/print',
-      n8n: '/api/n8n'
+      briefing: '/api/briefing',
+      ollama: '/api/ollama'
     }
   });
 });
@@ -164,7 +166,8 @@ app.use('/api/art', artRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/print', printRouter);
-app.use('/api/n8n', n8nRouter);
+app.use('/api/briefing', briefingRouter);
+app.use('/api/ollama', ollamaRouter);
 
 // 404 handler - must be after all routes
 app.use((req, res) => {
@@ -228,7 +231,8 @@ const startServer = async () => {
     console.log(`📊 Dashboard API: http://localhost:${PORT}/api/dashboard/data`);
     console.log(`👤 Profile API: http://localhost:${PORT}/api/profile`);
     console.log(`🖨️  Print API: http://localhost:${PORT}/api/print`);
-    console.log(`🔄 n8n API: http://localhost:${PORT}/api/n8n/briefing/print`);
+    console.log(`📋 Briefing API: http://localhost:${PORT}/api/briefing/print`);
+    console.log(`🦙 Ollama API: http://localhost:${PORT}/api/ollama/health`);
     console.log('');
     console.log('Press CTRL+C to stop the server');
     console.log('');

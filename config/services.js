@@ -47,9 +47,9 @@ module.exports = {
     trainApiKey: process.env.CTA_TRAIN_API_KEY
   },
 
-  // n8n API Configuration
-  n8n: {
-    apiKey: process.env.N8N_API_KEY,
-    baseUrl: process.env.N8N_BASE_URL || 'http://jamess-mac-mini:5678/api/v1'
+  // Ollama API Configuration
+  ollama: {
+    baseUrl: process.env.OLLAMA_URL || 'http://localhost:11434',
+    model: process.env.OLLAMA_MODEL || 'llama3'
   }
 };
