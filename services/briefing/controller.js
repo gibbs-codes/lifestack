@@ -1,6 +1,8 @@
 /**
  * Briefing Service - Controller
  * Aggregates data from multiple services and formats the morning briefing
+ *
+ * Aesthetic: contemplative, spacious, poetic
  */
 
 const { createWeatherClient } = require('../weather/client');
@@ -8,191 +10,210 @@ const { fetchTodoistTasks, fetchTodayCalendarEvents } = require('../unified/aggr
 const { fetchHoroscope, fetchNews, DEFAULT_CONFIG } = require('./client');
 
 // Briefing format constants
-const BRIEFING_WIDTH = 42;
+const W = 42;
 
 /**
- * Wrap text to specified width
- * @param {string} text - Text to wrap
- * @param {number} width - Max line width
- * @returns {string} Wrapped text
+ * Center text within width
  */
-function wrap(text, width = BRIEFING_WIDTH) {
+function center(text, width = W) {
+  const padding = Math.max(0, Math.floor((width - text.length) / 2));
+  return ' '.repeat(padding) + text;
+}
+
+/**
+ * Wrap and center text
+ */
+function wrapCenter(text, width = W) {
   const words = String(text).split(' ');
   const lines = [];
   let line = '';
 
   for (const word of words) {
-    if (line.length + word.length + 1 > width) {
-      if (line) lines.push(line);
+    if (line.length + word.length + 1 > width - 4) {
+      if (line) lines.push(center(line, width));
       line = word;
     } else {
       line = line ? `${line} ${word}` : word;
     }
   }
-
-  if (line) lines.push(line);
+  if (line) lines.push(center(line, width));
   return lines.join('\n');
 }
 
 /**
- * Create a section divider
- * @param {string} label - Section label
- * @returns {string} Formatted divider
+ * Soft divider - contemplative spacing
  */
-function divider(label) {
-  const dashes = '-'.repeat(Math.max(0, BRIEFING_WIDTH - label.length - 4));
-  return `-- ${label} ${dashes}`;
+function softDivider() {
+  return center('.  *  .', W);
+}
+
+/**
+ * Section break with breathing room
+ */
+function breathe(lines = 2) {
+  return '\n'.repeat(lines - 1);
 }
 
 /**
  * Format time from ISO string
- * @param {string} iso - ISO date string
- * @returns {string} Formatted time (e.g., "9:30a")
  */
 function formatTime(iso) {
   const d = new Date(iso);
   const h = d.getHours();
   const m = d.getMinutes().toString().padStart(2, '0');
-  const ampm = h >= 12 ? 'p' : 'a';
+  const ampm = h >= 12 ? 'pm' : 'am';
   const hour = h > 12 ? h - 12 : (h === 0 ? 12 : h);
-  return `${hour}:${m}${ampm}`;
+  return `${hour}:${m} ${ampm}`;
 }
 
 /**
  * Get formatted date string
- * @returns {string} e.g., "monday, feb 24"
  */
 function getDateString() {
   const now = new Date();
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  const months = ['january', 'february', 'march', 'april', 'may', 'june',
+                  'july', 'august', 'september', 'october', 'november', 'december'];
   return `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
 }
 
 /**
- * Format weather section
- * @param {Object} weather - Weather data
- * @returns {string} Formatted weather text
+ * Format weather - contemplative style
  */
 function formatWeather(weather) {
   if (!weather || weather.error) {
-    return 'weather data unavailable.';
+    return center('the sky is a mystery today');
   }
 
   const temp = Math.round(weather.temp || 0);
-  const feelsLike = Math.round(weather.feelsLike || 0);
+  const desc = (weather.description || 'unknown').toLowerCase();
   const high = Math.round(weather.high || 0);
   const low = Math.round(weather.low || 0);
-  const desc = (weather.description || weather.condition || 'unknown').toLowerCase();
-  const wind = Math.round(weather.windSpeed || 0);
 
-  return `${temp}° and ${desc}. feels like ${feelsLike}°, wind ${wind}mph.\nhigh ${high}° / low ${low}°.`;
+  return [
+    center(`${temp}°`),
+    center(desc),
+    '',
+    center(`${low}° — ${high}°`)
+  ].join('\n');
 }
 
 /**
- * Format calendar section
- * @param {Array} events - Calendar events
- * @returns {string} Formatted calendar text
+ * Format calendar - contemplative style (fewer items, more space)
  */
 function formatCalendar(events) {
   if (!events || events.length === 0) {
-    return '  nothing scheduled today.';
+    return center('a quiet day ahead');
   }
 
-  return events.slice(0, 6).map(e => {
+  // Show max 3 events with breathing room
+  return events.slice(0, 3).map(e => {
     const time = e.start?.dateTime ? formatTime(e.start.dateTime) : 'all day';
     const title = (e.summary || e.title || '').toLowerCase();
-    return `  ${time.padEnd(8)}${title}`;
-  }).join('\n');
+    return center(time) + '\n' + center(title);
+  }).join('\n\n');
 }
 
 /**
- * Format tasks section
- * @param {Array} tasks - Task list
- * @returns {string} Formatted tasks text
+ * Format tasks - contemplative style
  */
 function formatTasks(tasks) {
   const now = new Date();
-
-  // Filter for incomplete tasks with due dates
   const urgentTasks = (tasks || []).filter(t => !t.completed && (t.due || t.dueDate));
 
   if (urgentTasks.length === 0) {
-    return "  you're clear.";
+    return center('nothing pressing');
   }
 
-  return urgentTasks.slice(0, 5).map(t => {
+  // Show max 3 tasks
+  return urgentTasks.slice(0, 3).map(t => {
     const name = (t.title || t.content || t.name || '').toLowerCase();
     const dueDate = new Date(t.due || t.dueDate);
     const overdue = dueDate < now;
-    return `  -> ${name}${overdue ? ' (overdue)' : ''}`;
+    return center(overdue ? `· ${name} ·` : name);
   }).join('\n');
 }
 
 /**
- * Format news section
- * @param {Array} headlines - News headlines
- * @returns {string} Formatted news text
+ * Format a single headline - contemplative style
  */
-function formatNews(headlines) {
+function formatHeadline(headlines) {
   if (!headlines || headlines.length === 0) {
-    return '  no headlines available.';
+    return center('the world turns quietly');
   }
 
-  return headlines.map(title => {
-    const wrapped = wrap(title, BRIEFING_WIDTH - 4).split('\n').join('\n    ');
-    return `  . ${wrapped}`;
-  }).join('\n');
+  // Just one headline, wrapped nicely
+  const headline = headlines[0];
+  return wrapCenter(headline.toLowerCase(), W);
 }
 
-/*
- * ============================================================================
- * LLM INTEGRATION POINT (for future use)
- * ============================================================================
- *
- * When you're ready to add AI-generated briefings, you can use the Ollama
- * service at /api/ollama. Example integration:
- *
- *   const { createOllamaClient } = require('../ollama/client');
- *
- *   async function generateLLMBriefing(data) {
- *     const client = createOllamaClient();
- *     const prompt = `Write a morning briefing based on: ${JSON.stringify(data)}`;
- *     const result = await client.generate(prompt);
- *     return result.success ? result.text : null;
- *   }
- *
- * ============================================================================
+/**
+ * Format horoscope - contemplative style
  */
+function formatHoroscope(horoscope) {
+  const text = horoscope.text || 'the stars are silent';
+  return wrapCenter(text, W);
+}
 
 /**
- * Assemble the complete morning briefing
- * @param {Object} data - Aggregated data from all sources
- * @returns {string} Formatted briefing text
+ * Assemble the complete morning briefing - contemplative aesthetic
  */
 function assembleBriefing(data) {
   const { weather, events, tasks, horoscope, news } = data;
   const dateString = getDateString();
 
   const sections = [
-    `good morning -- ${dateString}`,
+    '',
+    '',
+    center('good morning'),
+    '',
+    center(dateString),
+    '',
+    '',
+    softDivider(),
+    '',
     '',
     formatWeather(weather),
     '',
-    divider('today'),
+    '',
+    softDivider(),
+    '',
+    '',
+    center('· today ·'),
+    '',
     formatCalendar(events),
     '',
-    divider('needs to happen'),
+    '',
+    softDivider(),
+    '',
+    '',
+    center('· remember ·'),
+    '',
     formatTasks(tasks),
     '',
-    divider('headlines'),
-    formatNews(news.headlines),
     '',
-    divider(horoscope.sign.toLowerCase()),
-    wrap(horoscope.text),
+    softDivider(),
     '',
-    '-'.repeat(BRIEFING_WIDTH),
-    `${' '.repeat(24)}go get 'em.`,
+    '',
+    center('· the world ·'),
+    '',
+    formatHeadline(news.headlines),
+    '',
+    '',
+    softDivider(),
+    '',
+    '',
+    center(`· ${horoscope.sign.toLowerCase()} ·`),
+    '',
+    formatHoroscope(horoscope),
+    '',
+    '',
+    '',
+    center('*'),
+    '',
+    center("go gently"),
+    '',
+    '',
     ''
   ];
 
@@ -201,8 +222,6 @@ function assembleBriefing(data) {
 
 /**
  * Gather all data for the briefing
- * @param {Object} options - Fetch options
- * @returns {Promise<Object>} Aggregated briefing data
  */
 async function gatherBriefingData(options = {}) {
   const sign = options.sign || DEFAULT_CONFIG.sign;
@@ -210,9 +229,7 @@ async function gatherBriefingData(options = {}) {
 
   console.log('📋 Gathering briefing data...');
 
-  // Fetch all data in parallel
   const [weather, events, tasks, horoscope, news] = await Promise.all([
-    // Weather
     (async () => {
       try {
         const client = createWeatherClient();
@@ -223,7 +240,6 @@ async function gatherBriefingData(options = {}) {
       }
     })(),
 
-    // Calendar events
     (async () => {
       try {
         return await fetchTodayCalendarEvents(baseUrl);
@@ -233,7 +249,6 @@ async function gatherBriefingData(options = {}) {
       }
     })(),
 
-    // Tasks
     (async () => {
       try {
         return await fetchTodoistTasks();
@@ -243,10 +258,7 @@ async function gatherBriefingData(options = {}) {
       }
     })(),
 
-    // Horoscope
     fetchHoroscope(sign),
-
-    // News
     fetchNews(options.newsLimit)
   ]);
 
@@ -257,7 +269,6 @@ async function gatherBriefingData(options = {}) {
 
 /**
  * GET /preview
- * Preview the briefing without printing
  */
 async function previewBriefing(req, res) {
   try {
@@ -283,7 +294,6 @@ async function previewBriefing(req, res) {
 
 /**
  * POST /print
- * Generate and print the morning briefing
  */
 async function printBriefing(req, res) {
   try {
@@ -291,10 +301,8 @@ async function printBriefing(req, res) {
     const data = await gatherBriefingData({ sign });
     const briefing = assembleBriefing(data);
 
-    // Import print controller and send to printer
     const { print } = require('../print/controller');
 
-    // Create a mock request/response for the print controller
     const printReq = {
       body: {
         text: briefing,
@@ -330,7 +338,7 @@ async function printBriefing(req, res) {
       res.status(500).json({
         success: false,
         error: printError || 'Failed to send to printer',
-        briefing // Still return the briefing text
+        briefing
       });
     }
   } catch (error) {
@@ -338,12 +346,6 @@ async function printBriefing(req, res) {
   }
 }
 
-/**
- * Handle errors consistently
- * @param {Object} res - Express response
- * @param {Error} error - Error object
- * @param {string} message - Error message
- */
 function handleError(res, error, message) {
   console.error(`❌ ${message}:`, error.message);
 
@@ -359,11 +361,7 @@ module.exports = {
   printBriefing,
   gatherBriefingData,
   assembleBriefing,
-  // Export formatters for testing/customization
-  formatWeather,
-  formatCalendar,
-  formatTasks,
-  formatNews,
-  wrap,
-  divider
+  center,
+  wrapCenter,
+  softDivider
 };

@@ -27,6 +27,7 @@ const { router: dashboardRouter, profileRouter } = require('./services/dashboard
 const { router: printRouter } = require('./services/print');
 const { router: briefingRouter } = require('./services/briefing');
 const { router: ollamaRouter } = require('./services/ollama');
+const { router: poemRouter } = require('./services/poem');
 
 // Initialize Express app
 const app = express();
@@ -95,7 +96,8 @@ app.get('/', (req, res) => {
       profile: '/api/profile',
       print: '/api/print',
       briefing: '/api/briefing',
-      ollama: '/api/ollama'
+      ollama: '/api/ollama',
+      poem: '/api/poem'
     }
   });
 });
@@ -168,6 +170,7 @@ app.use('/api/profile', profileRouter);
 app.use('/api/print', printRouter);
 app.use('/api/briefing', briefingRouter);
 app.use('/api/ollama', ollamaRouter);
+app.use('/api/poem', poemRouter);
 
 // 404 handler - must be after all routes
 app.use((req, res) => {
@@ -233,6 +236,7 @@ const startServer = async () => {
     console.log(`🖨️  Print API: http://localhost:${PORT}/api/print`);
     console.log(`📋 Briefing API: http://localhost:${PORT}/api/briefing/print`);
     console.log(`🦙 Ollama API: http://localhost:${PORT}/api/ollama/health`);
+    console.log(`✨ Poem API: http://localhost:${PORT}/api/poem/print`);
     console.log('');
     console.log('Press CTRL+C to stop the server');
     console.log('');
