@@ -36,6 +36,25 @@ function getAlignmentCommand(align) {
 }
 
 /**
+ * Sanitize text for thermal printer compatibility
+ * Replaces Unicode characters with ASCII equivalents
+ * @param {string} text - Input text
+ * @returns {string} Sanitized text
+ */
+function sanitizeForPrinter(text) {
+  return text
+    .replace(/°/g, 'deg')    // Degree symbol
+    .replace(/'/g, "'")      // Smart quotes
+    .replace(/'/g, "'")
+    .replace(/"/g, '"')
+    .replace(/"/g, '"')
+    .replace(/—/g, '--')     // Em dash
+    .replace(/–/g, '-')      // En dash
+    .replace(/…/g, '...')    // Ellipsis
+    .replace(/[^\x00-\x7F]/g, ''); // Remove any remaining non-ASCII
+}
+
+/**
  * Build ESC/POS payload for printing
  * @param {Object} options - Print options
  * @param {string} options.text - Text to print
@@ -45,10 +64,11 @@ function getAlignmentCommand(align) {
  * @returns {Buffer} Complete ESC/POS payload
  */
 function buildPayload({ text, align = 'left', cut = true, feed = 3 }) {
+  const sanitizedText = sanitizeForPrinter(text);
   const parts = [
     ESC_POS.INIT,
     getAlignmentCommand(align),
-    Buffer.from(text, 'utf8'),
+    Buffer.from(sanitizedText, 'utf8'),
     Buffer.from('\n'.repeat(feed), 'utf8')
   ];
 
