@@ -187,7 +187,6 @@ function assembleBriefing(data) {
  */
 async function gatherBriefingData(options = {}) {
   const sign = options.sign || DEFAULT_CONFIG.sign;
-  const baseUrl = options.baseUrl || 'http://localhost:3000';
 
   console.log('📋 Gathering briefing data...');
 
@@ -207,7 +206,7 @@ async function gatherBriefingData(options = {}) {
     // Calendar events
     (async () => {
       try {
-        return await fetchTodayCalendarEvents(baseUrl);
+        return await fetchTodayCalendarEvents();
       } catch (error) {
         console.error('❌ Calendar fetch failed:', error.message);
         return [];

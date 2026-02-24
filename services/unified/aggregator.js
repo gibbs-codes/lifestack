@@ -5,7 +5,8 @@
 
 const { createTodoistClient } = require('../todoist/client');
 const { createStravaClient } = require('../strava/client');
-const axios = require('axios');
+const { getCalendar, isAuthenticated } = require('../calendar/auth');
+const { normalizeEvents, getTodayKey } = require('../calendar/utils');
 
 /**
  * Normalize Todoist task to unified format
@@ -56,14 +57,39 @@ async function fetchTodoistTasks(options = {}) {
 }
 
 /**
- * Fetch calendar events for today
- * @param {string} baseUrl - Base URL for calendar service
+ * Fetch calendar events for today directly from Google Calendar API
  * @returns {Promise<Array>} Calendar events
  */
-async function fetchTodayCalendarEvents(baseUrl = 'http://localhost:3000') {
+async function fetchTodayCalendarEvents() {
   try {
-    const response = await axios.get(`${baseUrl}/api/calendar/events/today`);
-    return response.data.events || [];
+    if (!isAuthenticated()) {
+      console.warn('⚠️ Calendar not authenticated, returning empty events');
+      return [];
+    }
+
+    const calendar = getCalendar();
+    const dateKey = getTodayKey();
+
+    // Get start and end of today
+    const startOfDay = new Date(dateKey);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(dateKey);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    console.log(`📅 Fetching events for ${dateKey}`);
+
+    const response = await calendar.events.list({
+      calendarId: 'primary',
+      timeMin: startOfDay.toISOString(),
+      timeMax: endOfDay.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+    });
+
+    const events = response.data.items || [];
+    console.log(`✅ Fetched ${events.length} calendar events`);
+
+    return normalizeEvents(events);
   } catch (error) {
     console.error('❌ Failed to fetch calendar events:', error.message);
     throw error;
@@ -71,30 +97,39 @@ async function fetchTodayCalendarEvents(baseUrl = 'http://localhost:3000') {
 }
 
 /**
- * Fetch calendar events for a date range
+ * Fetch calendar events for a date range directly from Google Calendar API
  * @param {string} startDate - Start date (YYYY-MM-DD)
  * @param {string} endDate - End date (YYYY-MM-DD)
- * @param {string} baseUrl - Base URL
  * @returns {Promise<Array>} Calendar events
  */
-async function fetchCalendarEventsRange(startDate, endDate, baseUrl = 'http://localhost:3000') {
+async function fetchCalendarEventsRange(startDate, endDate) {
   try {
-    // Fetch events for each day in range
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const events = [];
-
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
-      try {
-        const response = await axios.get(`${baseUrl}/api/calendar/events/${dateStr}`);
-        events.push(...(response.data.events || []));
-      } catch (err) {
-        console.warn(`Could not fetch events for ${dateStr}:`, err.message);
-      }
+    if (!isAuthenticated()) {
+      console.warn('⚠️ Calendar not authenticated, returning empty events');
+      return [];
     }
 
-    return events;
+    const calendar = getCalendar();
+
+    const startOfRange = new Date(startDate);
+    startOfRange.setHours(0, 0, 0, 0);
+    const endOfRange = new Date(endDate);
+    endOfRange.setHours(23, 59, 59, 999);
+
+    console.log(`📅 Fetching events from ${startDate} to ${endDate}`);
+
+    const response = await calendar.events.list({
+      calendarId: 'primary',
+      timeMin: startOfRange.toISOString(),
+      timeMax: endOfRange.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+    });
+
+    const events = response.data.items || [];
+    console.log(`✅ Fetched ${events.length} calendar events`);
+
+    return normalizeEvents(events);
   } catch (error) {
     console.error('❌ Failed to fetch calendar events range:', error.message);
     throw error;
