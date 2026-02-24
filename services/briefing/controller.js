@@ -6,6 +6,7 @@
 const { createWeatherClient } = require('../weather/client');
 const { fetchTodoistTasks, fetchTodayCalendarEvents } = require('../unified/aggregator');
 const { fetchHoroscope, fetchNews, DEFAULT_CONFIG } = require('./client');
+const { createOllamaClient } = require('../ollama/client');
 
 // Briefing format constants
 const BRIEFING_WIDTH = 42;
@@ -319,6 +320,172 @@ async function printBriefing(req, res) {
 }
 
 /**
+ * Serialize briefing data into compact summary for LLM
+ * @param {Object} data - Raw briefing data
+ * @returns {Object} Compact summary
+ */
+function serializeBriefingData(data) {
+  const { weather, events, tasks, horoscope, news } = data;
+
+  return {
+    date: getDateString(),
+    weather: weather.error ? null : {
+      temp: Math.round(weather.temp || 0),
+      feelsLike: Math.round(weather.feelsLike || 0),
+      high: Math.round(weather.high || 0),
+      low: Math.round(weather.low || 0),
+      condition: (weather.description || weather.condition || '').toLowerCase(),
+      wind: Math.round(weather.windSpeed || 0)
+    },
+    events: (events || []).slice(0, 6).map(e => ({
+      time: e.start?.dateTime ? formatTime(e.start.dateTime) : 'all day',
+      title: (e.summary || e.title || '').toLowerCase()
+    })),
+    tasks: (tasks || []).filter(t => !t.completed && (t.due || t.dueDate)).slice(0, 5).map(t => ({
+      name: (t.title || t.content || t.name || '').toLowerCase(),
+      overdue: new Date(t.due || t.dueDate) < new Date()
+    })),
+    headlines: (news.headlines || []).slice(0, 5),
+    horoscope: {
+      sign: horoscope.sign,
+      text: horoscope.text
+    }
+  };
+}
+
+/**
+ * Build the newspaper prompt for Ollama
+ * @param {Object} summary - Serialized briefing data
+ * @returns {string} Full prompt
+ */
+function buildNewspaperPrompt(summary) {
+  const dataJson = JSON.stringify(summary, null, 2);
+
+  return `you are a copywriter for "the daily stack", a tiny morning newspaper printed on a thermal receipt printer (42 characters wide max).
+
+write today's edition using this data:
+${dataJson}
+
+rules:
+- all lowercase, no markdown, no asterisks
+- max 42 chars per line (hard limit)
+- use simple dashes for dividers (like: ----------)
+- keep it short, punchy, fits on a receipt
+
+sections to include:
+1. masthead: "the daily stack" centered, with a fake vol/no and today's date
+2. weather: write as a dramatic "correspondent report" (1-2 sentences, old-timey weather bureau style)
+3. today's schedule: "social calendar" - brief, slightly formal/gossipy society column style
+4. urgent matters: "classifieds" - tasks as terse classified ads
+5. headlines: rewrite in 1920s tabloid voice (punchy, slightly absurd)
+6. the oracle speaks: frame the horoscope text (keep actual text, just add period framing)
+7. sign-off: a witty newspaper motto
+
+write the complete newspaper now, plain text only:`;
+}
+
+/**
+ * GET /newspaper
+ * Generate LLM-powered newspaper-style briefing
+ */
+async function generateNewspaperBriefing(req, res) {
+  try {
+    const sign = req.query.sign || DEFAULT_CONFIG.sign;
+    const data = await gatherBriefingData({ sign });
+    const summary = serializeBriefingData(data);
+    const prompt = buildNewspaperPrompt(summary);
+
+    const ollama = createOllamaClient();
+    const result = await ollama.generate(prompt);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: result.error || 'Failed to generate newspaper',
+        code: result.code
+      });
+    }
+
+    res.json({
+      success: true,
+      briefing: result.text
+    });
+  } catch (error) {
+    handleError(res, error, 'Failed to generate newspaper briefing');
+  }
+}
+
+/**
+ * GET /newspaper/print
+ * Generate and print newspaper-style briefing
+ */
+async function printNewspaperBriefing(req, res) {
+  try {
+    const sign = req.query.sign || DEFAULT_CONFIG.sign;
+    const data = await gatherBriefingData({ sign });
+    const summary = serializeBriefingData(data);
+    const prompt = buildNewspaperPrompt(summary);
+
+    const ollama = createOllamaClient();
+    const result = await ollama.generate(prompt);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: result.error || 'Failed to generate newspaper',
+        code: result.code
+      });
+    }
+
+    const briefing = result.text;
+
+    // Send to printer
+    const { print } = require('../print/controller');
+
+    const printReq = {
+      body: {
+        text: briefing,
+        align: 'left',
+        cut: true,
+        feed: 3
+      }
+    };
+
+    let printSuccess = false;
+    let printError = null;
+
+    const printRes = {
+      json: (result) => {
+        printSuccess = result.success;
+      },
+      status: (code) => ({
+        json: (result) => {
+          printError = result.error;
+        }
+      })
+    };
+
+    await print(printReq, printRes);
+
+    if (printSuccess) {
+      res.json({
+        success: true,
+        message: 'printing your newspaper...',
+        briefing
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: printError || 'Failed to send to printer',
+        briefing
+      });
+    }
+  } catch (error) {
+    handleError(res, error, 'Failed to print newspaper briefing');
+  }
+}
+
+/**
  * Handle errors consistently
  * @param {Object} res - Express response
  * @param {Error} error - Error object
@@ -337,6 +504,8 @@ function handleError(res, error, message) {
 module.exports = {
   previewBriefing,
   printBriefing,
+  generateNewspaperBriefing,
+  printNewspaperBriefing,
   gatherBriefingData,
   assembleBriefing,
   // Export formatters for testing/customization

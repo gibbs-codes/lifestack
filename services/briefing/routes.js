@@ -33,4 +33,20 @@ router.get('/print', async (req, res) => {
   return controller.printBriefing(req, res);
 });
 
+/**
+ * GET /api/briefing/newspaper
+ * Generate LLM-powered newspaper-style briefing (1920s broadsheet)
+ * Query params:
+ *   - sign: Zodiac sign for horoscope (default: Aquarius)
+ */
+router.get('/newspaper', controller.generateNewspaperBriefing);
+
+/**
+ * GET /api/briefing/newspaper/print
+ * Generate and print newspaper-style briefing
+ * Query params:
+ *   - sign: Zodiac sign for horoscope (default: Aquarius)
+ */
+router.get('/newspaper/print', controller.printNewspaperBriefing);
+
 module.exports = router;
