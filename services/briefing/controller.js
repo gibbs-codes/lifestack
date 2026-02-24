@@ -360,25 +360,52 @@ function serializeBriefingData(data) {
 function buildNewspaperPrompt(summary) {
   const dataJson = JSON.stringify(summary, null, 2);
 
-  return `you are a copywriter for "the daily stack", a tiny morning newspaper printed on a thermal receipt printer (42 characters wide max).
+  return `you are a copywriter for "the morning post", a tiny broadsheet printed on a thermal receipt printer.
 
 write today's edition using this data:
 ${dataJson}
 
-rules:
+STRICT FORMATTING RULES:
 - all lowercase, no markdown, no asterisks
-- max 42 chars per line (hard limit)
-- use simple dashes for dividers (like: ----------)
-- keep it short, punchy, fits on a receipt
+- max 42 characters per line (HARD LIMIT)
+- NEVER break words across lines - if a word won't fit, move it to the next line
+- use blank lines between sections for readability
+- use a row of dashes (----------) to separate major sections
 
 sections to include:
-1. masthead: "the daily stack" centered, with a fake vol/no and today's date
-2. weather: write as a dramatic "correspondent report" (1-2 sentences, old-timey weather bureau style)
-3. today's schedule: "social calendar" - brief, slightly formal/gossipy society column style
-4. urgent matters: "classifieds" - tasks as terse classified ads
-5. headlines: rewrite in 1920s tabloid voice (punchy, slightly absurd)
-6. the oracle speaks: frame the horoscope text (keep actual text, just add period framing)
-7. sign-off: a witty newspaper motto
+
+1. MASTHEAD
+   "the morning post" centered
+   a fake vol/no and today's date below it
+   a row of dashes underneath
+
+2. WEATHER DISPATCH
+   section header, then 1-2 sentences
+   dramatic old-timey weather bureau style
+   blank line after
+
+3. SOCIAL CALENDAR
+   section header, then list today's events
+   brief, formal society column style
+   blank line after
+
+4. MATTERS REQUIRING ATTENTION
+   section header, then tasks as terse classified ads
+   blank line after
+
+5. DISPATCHES FROM ABROAD
+   section header, then headlines
+   rewritten in 1920s tabloid voice
+   punchy, slightly absurd
+   blank line after
+
+6. THE ORACLE SPEAKS
+   section header for horoscope
+   keep the actual horoscope text, just frame it
+   blank line after
+
+7. SIGN-OFF
+   a row of dashes, then a witty motto centered
 
 write the complete newspaper now, plain text only:`;
 }
