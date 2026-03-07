@@ -49,4 +49,11 @@ router.get('/newspaper', controller.generateNewspaperBriefing);
  */
 router.get('/newspaper/print', controller.printNewspaperBriefing);
 
+/**
+ * GET /api/briefing/summary
+ * Generate a concise LLM-powered morning briefing summary
+ * Returns a 2-3 sentence summary of today's events, tasks, and weather
+ */
+router.get('/summary', controller.generateBriefingSummary);
+
 module.exports = router;

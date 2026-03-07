@@ -527,11 +527,118 @@ function handleError(res, error, message) {
   });
 }
 
+/**
+ * Build the summary prompt for Ollama
+ * @param {Object} data - Gathered briefing data
+ * @returns {string} Prompt for LLM
+ */
+function buildSummaryPrompt(data) {
+  const { weather, events, tasks } = data;
+
+  // Format calendar events
+  let eventsText = 'no events scheduled';
+  if (events && events.length > 0) {
+    eventsText = events.slice(0, 5).map(e => {
+      const time = e.start?.dateTime ? formatTime(e.start.dateTime) : 'all day';
+      const title = e.summary || e.title || 'untitled';
+      return `${time}: ${title}`;
+    }).join(', ');
+  }
+
+  // Format tasks
+  let tasksText = 'no tasks due';
+  const urgentTasks = (tasks || []).filter(t => !t.completed && (t.due || t.dueDate)).slice(0, 5);
+  if (urgentTasks.length > 0) {
+    tasksText = urgentTasks.map(t => t.title || t.content || t.name).join(', ');
+  }
+
+  // Format weather
+  let weatherText = 'weather unavailable';
+  if (weather && !weather.error) {
+    const temp = Math.round(weather.temp || 0);
+    const condition = (weather.description || weather.condition || '').toLowerCase();
+    weatherText = `${condition}, ${temp}°F`;
+  }
+
+  return `You are a calm, concise personal assistant. Given the following information about today, write a 2-3 sentence morning briefing. Be specific about events and numbers. Do not use filler phrases like "It looks like" or "Don't forget". Speak directly. No bullet points — flowing sentences only.
+
+Calendar today: ${eventsText}
+Tasks due: ${tasksText}
+Weather: ${weatherText}
+
+Write only the briefing text, nothing else.`;
+}
+
+/**
+ * GET /summary
+ * Generate concise LLM-powered morning briefing summary
+ */
+async function generateBriefingSummary(req, res) {
+  try {
+    // Gather minimal data (no horoscope/news needed)
+    const [weather, events, tasks] = await Promise.all([
+      (async () => {
+        try {
+          const client = createWeatherClient();
+          return await client.getCurrentWeather();
+        } catch (error) {
+          console.error('❌ Weather fetch failed:', error.message);
+          return { error: true };
+        }
+      })(),
+      (async () => {
+        try {
+          return await fetchTodayCalendarEvents();
+        } catch (error) {
+          console.error('❌ Calendar fetch failed:', error.message);
+          return [];
+        }
+      })(),
+      (async () => {
+        try {
+          return await fetchTodoistTasks();
+        } catch (error) {
+          console.error('❌ Tasks fetch failed:', error.message);
+          return [];
+        }
+      })()
+    ]);
+
+    const data = { weather, events, tasks };
+    const prompt = buildSummaryPrompt(data);
+
+    const ollama = createOllamaClient();
+    const result = await ollama.generate(prompt);
+
+    if (!result.success) {
+      // Return null summary on LLM failure (UI handles gracefully)
+      console.error('❌ Ollama generate failed:', result.error);
+      return res.json({
+        success: true,
+        data: { summary: null }
+      });
+    }
+
+    res.json({
+      success: true,
+      data: { summary: result.text.trim() }
+    });
+  } catch (error) {
+    console.error('❌ Failed to generate briefing summary:', error.message);
+    // Return null summary on error (UI handles gracefully)
+    res.json({
+      success: true,
+      data: { summary: null }
+    });
+  }
+}
+
 module.exports = {
   previewBriefing,
   printBriefing,
   generateNewspaperBriefing,
   printNewspaperBriefing,
+  generateBriefingSummary,
   gatherBriefingData,
   assembleBriefing,
   // Export formatters for testing/customization
