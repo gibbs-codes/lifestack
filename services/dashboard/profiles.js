@@ -1,9 +1,11 @@
 /**
- * Dashboard Profile Definitions
+ * Dashboard Profile Definitions (Unified)
  *
- * Defines what data should be included in each dashboard profile
+ * Each profile specifies:
+ * 1. Data sources to include (what to fetch from backend)
+ * 2. Display configuration (what components to render on TV/projector)
  *
- * Each profile specifies which data sources to include:
+ * Data sources:
  * - weather: Current weather and forecast
  * - transit: CTA bus and train arrivals
  * - calendar: Today's events
@@ -11,13 +13,17 @@
  * - nextEvent: Next upcoming event
  * - urgentTasksOnly: Filter tasks to only urgent ones (due within 24hrs)
  * - art: Artwork from museums
+ *
+ * Display components:
+ * - TV: TVArt, TVRelax, TVDefault
+ * - Projector: Transit, ClockWeather, ArtCanvas, CalendarTimeline
  */
 
 const PROFILES = {
   // Default profile - Art display with weather and transit
   default: {
     name: 'Default',
-    description: 'Art display with weather and transit info',
+    description: 'Fullpage art display with weather and time',
     includes: {
       weather: true,
       transit: true,
@@ -25,13 +31,43 @@ const PROFILES = {
       tasks: false,
       nextEvent: false,
       art: true
+    },
+    displays: {
+      tv: 'TVArt',
+      projector: {
+        left: 'Transit',
+        center: 'ArtCanvas',
+        right: 'ArtCanvas'
+      }
+    }
+  },
+
+  // Relax profile - Generative art on TV, museum art on projector
+  relax: {
+    name: 'Relax Mode',
+    description: 'Generative art on TV, museum art on projector',
+    includes: {
+      weather: true,
+      transit: true,
+      calendar: false,
+      tasks: false,
+      nextEvent: false,
+      art: true
+    },
+    displays: {
+      tv: 'TVRelax',
+      projector: {
+        left: 'Transit',
+        center: 'ClockWeather',
+        right: 'ArtCanvas'
+      }
     }
   },
 
   // Gallery profile - Art focused with weather and transit
   gallery: {
     name: 'Gallery',
-    description: 'Art display from museums with weather and transit info',
+    description: 'Museum art gallery with transit',
     includes: {
       weather: true,
       transit: true,
@@ -39,6 +75,14 @@ const PROFILES = {
       tasks: false,
       nextEvent: false,
       art: true
+    },
+    displays: {
+      tv: 'TVRelax',
+      projector: {
+        left: 'Transit',
+        center: 'ArtCanvas',
+        right: 'ArtCanvas'
+      }
     },
     artStyles: ['Cubism', 'Expressionism', 'Surrealism', 'Abstract', 'Minimalism', 'Constructivism', 'Symbolism', 'Suprematism', 'Bauhaus']
   },
@@ -55,6 +99,14 @@ const PROFILES = {
       nextEvent: true,
       urgentTasksOnly: true,
       art: true
+    },
+    displays: {
+      tv: 'TVArt',
+      projector: {
+        left: 'Transit',
+        center: 'ClockWeather',
+        right: 'ArtCanvas'
+      }
     }
   },
 
@@ -69,6 +121,14 @@ const PROFILES = {
       tasks: false,
       nextEvent: true,
       art: true
+    },
+    displays: {
+      tv: 'TVRelax',
+      projector: {
+        left: 'ArtCanvas',
+        center: 'ClockWeather',
+        right: 'ArtCanvas'
+      }
     }
   },
 
@@ -83,20 +143,14 @@ const PROFILES = {
       tasks: true,
       nextEvent: true,
       art: false
-    }
-  },
-
-  // Relax profile - Art only with minimal clock
-  relax: {
-    name: 'Relax',
-    description: 'Relaxation mode - art only',
-    includes: {
-      weather: false,
-      transit: false,
-      calendar: false,
-      tasks: false,
-      nextEvent: false,
-      art: true
+    },
+    displays: {
+      tv: 'TVArt',
+      projector: {
+        left: 'Transit',
+        center: 'ClockWeather',
+        right: 'ArtCanvas'
+      }
     }
   },
 
@@ -111,6 +165,14 @@ const PROFILES = {
       tasks: true,
       nextEvent: true,
       art: true
+    },
+    displays: {
+      tv: 'TVArt',
+      projector: {
+        left: 'Transit',
+        center: 'ClockWeather',
+        right: 'ArtCanvas'
+      }
     }
   },
 
@@ -125,6 +187,14 @@ const PROFILES = {
       tasks: false,
       nextEvent: false,
       art: true
+    },
+    displays: {
+      tv: 'TVArt',
+      projector: {
+        left: 'Transit',
+        center: 'ArtCanvas',
+        right: 'ArtCanvas'
+      }
     }
   },
 
@@ -139,6 +209,146 @@ const PROFILES = {
       tasks: false,
       nextEvent: false,
       art: false
+    },
+    displays: {
+      tv: 'TVArt',
+      projector: {
+        left: 'Transit',
+        center: 'ClockWeather',
+        right: 'ArtCanvas'
+      }
+    }
+  },
+
+  // Ambient profile - Generative art, no transit
+  ambient: {
+    name: 'Ambient',
+    description: 'Generative art on TV, museum art on projector',
+    includes: {
+      weather: true,
+      transit: false,
+      calendar: false,
+      tasks: false,
+      nextEvent: false,
+      art: true
+    },
+    displays: {
+      tv: 'TVRelax',
+      projector: {
+        left: 'ArtCanvas',
+        center: 'ClockWeather',
+        right: 'ArtCanvas'
+      }
+    }
+  },
+
+  // Commute profile - Transit-focused with clock
+  commute: {
+    name: 'Commute',
+    description: 'Transit times and clock',
+    includes: {
+      weather: true,
+      transit: true,
+      calendar: false,
+      tasks: false,
+      nextEvent: false,
+      art: true
+    },
+    displays: {
+      tv: 'TVArt',
+      projector: {
+        left: 'Transit',
+        center: 'ClockWeather',
+        right: 'ArtCanvas'
+      }
+    }
+  },
+
+  // Artshow profile - Museum art in all canvases
+  artshow: {
+    name: 'Art Show',
+    description: 'Museum artwork display',
+    includes: {
+      weather: true,
+      transit: false,
+      calendar: false,
+      tasks: false,
+      nextEvent: false,
+      art: true
+    },
+    displays: {
+      tv: 'TVArt',
+      projector: {
+        left: 'ArtCanvas',
+        center: 'ArtCanvas',
+        right: 'ArtCanvas'
+      }
+    }
+  },
+
+  // Minimal profile - Just clock and weather with art
+  minimal: {
+    name: 'Minimal',
+    description: 'Clean clock and weather with art',
+    includes: {
+      weather: true,
+      transit: false,
+      calendar: false,
+      tasks: false,
+      nextEvent: false,
+      art: true
+    },
+    displays: {
+      tv: 'TVArt',
+      projector: {
+        left: 'ArtCanvas',
+        center: 'ClockWeather',
+        right: 'ArtCanvas'
+      }
+    }
+  },
+
+  // Flow profile - Flow art on TV, transit + art on projector
+  flow: {
+    name: 'Flow',
+    description: 'Flow art on TV, transit and art on projector',
+    includes: {
+      weather: true,
+      transit: true,
+      calendar: false,
+      tasks: false,
+      nextEvent: false,
+      art: true
+    },
+    displays: {
+      tv: 'TVRelax',
+      projector: {
+        left: 'Transit',
+        center: 'ArtCanvas',
+        right: 'ArtCanvas'
+      }
+    }
+  },
+
+  // Orbital profile - Orbital art on TV, clock + art on projector
+  orbital: {
+    name: 'Orbital',
+    description: 'Orbital art on TV, clock and art on projector',
+    includes: {
+      weather: true,
+      transit: false,
+      calendar: false,
+      tasks: false,
+      nextEvent: false,
+      art: true
+    },
+    displays: {
+      tv: 'TVRelax',
+      projector: {
+        left: 'ArtCanvas',
+        center: 'ClockWeather',
+        right: 'ArtCanvas'
+      }
     }
   }
 };
@@ -176,9 +386,24 @@ function isValidProfile(profileName) {
   return Object.prototype.hasOwnProperty.call(PROFILES, profileName?.toLowerCase());
 }
 
+/**
+ * Get display configuration for a profile
+ * @param {string} profileName
+ * @param {string} displayType - 'tv' or 'projector'
+ * @returns {Object|string|null}
+ */
+function getDisplayConfig(profileName, displayType) {
+  const profile = getProfile(profileName);
+  if (!profile || !profile.displays) {
+    return null;
+  }
+  return profile.displays[displayType] || null;
+}
+
 module.exports = {
   PROFILES,
   getProfile,
   getAllProfiles,
-  isValidProfile
+  isValidProfile,
+  getDisplayConfig
 };

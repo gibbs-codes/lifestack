@@ -98,9 +98,11 @@ function getCurrentProfile(req, res) {
     success: true,
     data: {
       profile: currentProfile,
+      mode: currentProfile,  // Alias for frontend compatibility
       name: profile.name,
       description: profile.description,
       includes: profile.includes,
+      displays: profile.displays,  // Display configuration for frontend
       lastChanged: profileHistory.length > 0 ? profileHistory[0].timestamp : null
     }
   });
@@ -155,9 +157,11 @@ function setProfile(req, res) {
       message: `Profile changed to ${currentProfile}`,
       data: {
         profile: currentProfile,
+        mode: currentProfile,  // Alias for frontend compatibility
         name: profileConfig.name,
         description: profileConfig.description,
-        includes: profileConfig.includes
+        includes: profileConfig.includes,
+        displays: profileConfig.displays  // Display configuration for frontend
       }
     });
 
