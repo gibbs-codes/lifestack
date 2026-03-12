@@ -7,6 +7,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const cors = require('cors');
 const { connectDB, closeDB } = require('./config/database');
 const { requestLogger, errorLogger } = require('./shared/middleware/logger');
 const { statsMiddleware, getStats, getMongoStats } = require('./shared/middleware/stats');
@@ -38,6 +39,9 @@ const PORT = process.env.PORT || 3000;
 /**
  * Middleware Setup
  */
+
+// Enable CORS for all origins (dashboard-ui running on different port/host)
+app.use(cors());
 
 // Parse JSON request bodies
 app.use(express.json());
