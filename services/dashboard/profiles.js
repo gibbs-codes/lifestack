@@ -15,8 +15,8 @@
  * - art: Artwork from museums
  *
  * Display components:
- * - TV: TVArt, TVRelax, TVDefault
- * - Projector: Transit, ClockWeather, ArtCanvas, CalendarTimeline
+ * - TV: TVArt, TVRelax, TVMorning, TVFocus
+ * - Projector: Transit, ClockWeather, ArtCanvas, CalendarTimeline, NextEvent, WeatherForecast, ShapeField
  */
 
 const PROFILES = {
@@ -87,10 +87,10 @@ const PROFILES = {
     artStyles: ['Cubism', 'Expressionism', 'Surrealism', 'Abstract', 'Minimalism', 'Constructivism', 'Symbolism', 'Suprematism', 'Bauhaus']
   },
 
-  // Morning profile - Weather, next event, and urgent tasks
+  // Morning profile - Info-heavy: transit, next event, weather forecast, briefing on TV
   morning: {
     name: 'Morning',
-    description: 'Morning briefing - weather, next event, and urgent tasks',
+    description: 'Morning briefing - transit, next event, weather forecast',
     includes: {
       weather: true,
       transit: true,
@@ -98,14 +98,14 @@ const PROFILES = {
       tasks: true,
       nextEvent: true,
       urgentTasksOnly: true,
-      art: true
+      art: false
     },
     displays: {
-      tv: 'TVArt',
+      tv: 'TVMorning',
       projector: {
         left: 'Transit',
-        center: 'ClockWeather',
-        right: 'ArtCanvas'
+        center: 'NextEvent',
+        right: 'WeatherForecast'
       }
     }
   },
@@ -348,6 +348,50 @@ const PROFILES = {
         left: 'ArtCanvas',
         center: 'ClockWeather',
         right: 'ArtCanvas'
+      }
+    }
+  },
+
+  // Evening profile - Moody geometric shapes on projector, flow on TV
+  evening: {
+    name: 'Evening',
+    description: 'Moody evening ambiance with geometric shapes',
+    includes: {
+      weather: true,
+      transit: false,
+      calendar: false,
+      tasks: false,
+      nextEvent: false,
+      art: true
+    },
+    displays: {
+      tv: 'TVRelax',
+      projector: {
+        left: 'ShapeField',
+        center: 'ShapeField',
+        right: 'ShapeField'
+      }
+    }
+  },
+
+  // Experimental profile - For testing new features
+  experimental: {
+    name: 'Experimental',
+    description: 'Testing ground for new features',
+    includes: {
+      weather: true,
+      transit: true,
+      calendar: true,
+      tasks: true,
+      nextEvent: true,
+      art: true
+    },
+    displays: {
+      tv: 'TVArt',
+      projector: {
+        left: 'Transit',
+        center: 'NextEvent',
+        right: 'WeatherForecast'
       }
     }
   }
